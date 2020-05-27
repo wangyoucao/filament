@@ -118,7 +118,12 @@ struct FAssetLoader : public AssetLoader {
             mDefaultNodeName(config.defaultNodeName) {}
 
     FFilamentAsset* createAssetFromJson(const uint8_t* bytes, uint32_t nbytes);
-    FilamentAsset* createAssetFromBinary(const uint8_t* bytes, uint32_t nbytes);
+    FFilamentAsset* createAssetFromBinary(const uint8_t* bytes, uint32_t nbytes);
+    FFilamentAsset* createInstancedAsset(const uint8_t* bytes, uint32_t numBytes,
+        FilamentInstance** instances, size_t numInstances);
+
+    bool createAssets(const uint8_t* bytes, uint32_t numBytes, FilamentAsset** assets,
+            size_t numAssets);
 
     ~FAssetLoader() {
         delete mMaterials;
@@ -188,7 +193,7 @@ FFilamentAsset* FAssetLoader::createAssetFromJson(const uint8_t* bytes, uint32_t
     return mResult;
 }
 
-FilamentAsset* FAssetLoader::createAssetFromBinary(const uint8_t* bytes, uint32_t nbytes) {
+FFilamentAsset* FAssetLoader::createAssetFromBinary(const uint8_t* bytes, uint32_t nbytes) {
 
     // The cgltf library handles GLB efficiently by pointing all buffer views into the source data.
     // However, we wish our API to be simple and safe, allowing clients to free up their source blob
@@ -204,6 +209,30 @@ FilamentAsset* FAssetLoader::createAssetFromBinary(const uint8_t* bytes, uint32_
     cgltf_result result = cgltf_parse(&options, glbdata.data(), nbytes, &sourceAsset);
     if (result != cgltf_result_success) {
         slog.e << "Unable to parse glb file." << io::endl;
+        return nullptr;
+    }
+    createAsset(sourceAsset);
+    if (mResult) {
+        glbdata.swap(mResult->mGlbData);
+    }
+    return mResult;
+}
+
+FFilamentAsset* FAssetLoader::createInstancedAsset(const uint8_t* bytes, uint32_t numBytes,
+        FilamentInstance** instances, size_t numInstances) {
+    // This method can be used to load JSON or GLB. By using a default options struct, we are asking
+    // cgltf to examine the magic identifier to determine which type of file is being loaded.
+    cgltf_options options {};
+
+    // Clients can free up their source blob immediately, but cgltf has pointers into the data that
+    // need to stay valid. Therefore we create a copy of the source blob and stash it inside the
+    // asset.
+    std::vector<uint8_t> glbdata(bytes, bytes + numBytes);
+
+    cgltf_data* sourceAsset;
+    cgltf_result result = cgltf_parse(&options, glbdata.data(), numBytes, &sourceAsset);
+    if (result != cgltf_result_success) {
+        slog.e << "Unable to parse glTF file." << io::endl;
         return nullptr;
     }
     createAsset(sourceAsset);
@@ -1017,6 +1046,11 @@ FilamentAsset* AssetLoader::createAssetFromJson(uint8_t const* bytes, uint32_t n
 
 FilamentAsset* AssetLoader::createAssetFromBinary(uint8_t const* bytes, uint32_t nbytes) {
     return upcast(this)->createAssetFromBinary(bytes, nbytes);
+}
+
+FilamentAsset* AssetLoader::createInstancedAsset(const uint8_t* bytes, uint32_t numBytes,
+        FilamentInstance** instances, size_t numInstances) {
+    return upcast(this)->createInstancedAsset(bytes, numBytes, instances, numInstances);
 }
 
 FilamentAsset* AssetLoader::createAssetFromHandle(const void* handle) {

@@ -40,8 +40,8 @@ class Animator;
  * For usage instructions, see the documentation for AssetLoader.
  *
  * This class owns a hierarchy of entities that have been loaded from a glTF asset. Every entity has
- * a filament::TransformManager component, and some entities also have \c Name and/or \c Renderable
- * components.
+ * a filament::TransformManager component, and some entities also have \c Name, \c Renderable, or
+ * \c Light components.
  *
  * In addition to the aforementioned entities, an asset has strong ownership over a list of
  * filament::VertexBuffer, filament::IndexBuffer, filament::MaterialInstance, filament::Texture,
@@ -133,6 +133,9 @@ public:
     /**
      * Lazily creates the animation engine or returns it from the cache.
      * The animator is owned by the asset and should not be manually deleted.
+     *
+     * If the asset is instanced, this returns a "master" animator that control all instances.
+     * To animate each instance individually, use \see FilamentInstance.
      */
     Animator* getAnimator() noexcept;
 

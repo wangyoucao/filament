@@ -14,6 +14,7 @@ set(PUBLIC_HDRS
         include/gltfio/ResourceLoader.h
         include/gltfio/SimpleViewer.h
         include/gltfio/FilamentAsset.h
+        include/gltfio/FilamentInstance.h
 )
 
 set(SRCS
