@@ -189,20 +189,20 @@ private:
     // Properties that can be changed from the UI.
     int mCurrentAnimation = 1;
     bool mResetAnimation = true;
-    float mIblIntensity = 30000.0f;
+    float mIblIntensity = 3000.0f;
     float mIblRotation = 0.0f;
-    float mSunlightIntensity = 100000.0f;
+    float mSunlightIntensity = 500000.0f;
     filament::math::float3 mSunlightColor = filament::Color::toLinear<filament::ACCURATE>({ 0.98, 0.92, 0.89});
     filament::math::float3 mSunlightDirection = {0.6, -1.0, -0.8};
     bool mEnableWireframe = false;
     bool mEnableSunlight = true;
-    bool mEnableShadows = true;
+    bool mEnableShadows = false;
     int mShadowCascades = 1;
     bool mEnableContactShadows = false;
-    bool mEnableDithering = true;
-    bool mEnableFxaa = true;
-    bool mEnableMsaa = true;
-    bool mEnableSsao = true;
+    bool mEnableDithering = false;
+    bool mEnableFxaa = false;
+    bool mEnableMsaa = false;
+    bool mEnableSsao = false;
     filament::View::BloomOptions mBloomOptions = { .enabled = true };
     filament::View::FogOptions mFogOptions = {};
     int mSidebarWidth;

@@ -840,37 +840,42 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
     bloomOptions.levels = std::min(bloomOptions.levels, maxLevels);
     bloomOptions.levels = std::min(bloomOptions.levels, kMaxBloomLevels);
 
-    if (2 * width < desc.width || 2 * height < desc.height) {
-        // if we're scaling down by more than 2x, prescale the image with a blit to improve
-        // performance. This is important on mobile/tilers.
-        input = opaqueBlit(fg, input, {
-                .width = desc.width / 2,
-                .height = desc.height / 2,
-                .format = outFormat
-        });
-    }
-
     struct BloomPassData {
         FrameGraphId<FrameGraphTexture> in;
-        FrameGraphId<FrameGraphTexture> out;
-        FrameGraphRenderTargetHandle outRT[kMaxBloomLevels];
+        FrameGraphId<FrameGraphTexture> out[2];
+        FrameGraphRenderTargetHandle outRT0[kMaxBloomLevels];
+        FrameGraphRenderTargetHandle outRT1[kMaxBloomLevels];
     };
 
     // downsample phase
     auto& bloomDownsamplePass = fg.addPass<BloomPassData>("Bloom Downsample",
             [&](FrameGraph::Builder& builder, auto& data) {
                 data.in = builder.sample(input);
-                data.out = builder.createTexture("Bloom Texture", {
+
+                data.out[0] = builder.createTexture("Bloom Texture A", {
                         .width = width,
                         .height = height,
                         .levels = bloomOptions.levels,
                         .format = outFormat
                 });
-                data.out = builder.write(builder.sample(data.out));
+                data.out[0] = builder.write(builder.sample(data.out[0]));
+
+                data.out[1] = builder.createTexture("Bloom Texture B", {
+                        .width = width,
+                        .height = height,
+                        .levels = bloomOptions.levels,
+                        .format = outFormat
+                });
+                data.out[1] = builder.write(builder.sample(data.out[1]));
 
                 for (size_t i = 0; i < bloomOptions.levels; i++) {
-                    data.outRT[i] = builder.createRenderTarget("Bloom target", {
-                            .attachments = {{ data.out, uint8_t(i) }} });
+                    data.outRT0[i] = builder.createRenderTarget("Bloom target A", {
+                            .attachments = {{ data.out[0], uint8_t(i) }} });
+                }
+
+                for (size_t i = 0; i < bloomOptions.levels; i++) {
+                    data.outRT1[i] = builder.createRenderTarget("Bloom target B", {
+                            .attachments = {{ data.out[1], uint8_t(i) }} });
                 }
             },
             [=](FrameGraphPassResources const& resources,
@@ -882,8 +887,8 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                 const PipelineState pipeline(bloomDownsample.getPipelineState());
 
                 auto hwIn = resources.getTexture(data.in);
-                auto hwOut = resources.getTexture(data.out);
-                auto const& outDesc = resources.getDescriptor(data.out);
+                auto hwOut = resources.getTexture(data.out[0]);
+                auto const& outDesc = resources.getDescriptor(data.out[0]);
 
                 mi->use(driver);
                 mi->setParameter("source", hwIn,  {
@@ -894,18 +899,25 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                 mi->setParameter("threshold", bloomOptions.threshold ? 1.0f : 0.0f);
 
                 for (size_t i = 0; i < bloomOptions.levels; i++) {
-                    auto hwOutRT = resources.get(data.outRT[i]);
+                    auto hwOutRT0 = resources.get(data.outRT0[i]);
+                    auto hwOutRT1 = resources.get(data.outRT1[i]);
 
                     auto w = FTexture::valueForLevel(i, outDesc.width);
                     auto h = FTexture::valueForLevel(i, outDesc.height);
                     mi->setParameter("resolution", float4{ w, h, 1.0f / w, 1.0f / h });
                     mi->commit(driver);
 
-                    hwOutRT.params.flags.discardStart = TargetBufferFlags::COLOR;
-                    hwOutRT.params.flags.discardEnd = TargetBufferFlags::NONE;
-                    driver.beginRenderPass(hwOutRT.target, hwOutRT.params);
+                    hwOutRT1.params.flags.discardStart = TargetBufferFlags::COLOR;
+                    hwOutRT1.params.flags.discardEnd = TargetBufferFlags::NONE;
+                    driver.beginRenderPass(hwOutRT1.target, hwOutRT1.params);
                     driver.draw(pipeline, fullScreenRenderPrimitive);
                     driver.endRenderPass();
+
+                    auto blit_src = hwOutRT1;
+                    auto blit_dst = hwOutRT0;
+                    driver.blit(TargetBufferFlags::COLOR,
+                        blit_dst.target, blit_dst.params.viewport, blit_src.target,
+                        blit_src.params.viewport, SamplerMagFilter::LINEAR);
 
                     // prepare the next level
                     mi->setParameter("source", hwOut,  {
@@ -916,24 +928,39 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                 }
             });
 
-    input = bloomDownsamplePass.getData().out;
+    input = bloomDownsamplePass.getData().out[0];
 
     // upsample phase
     auto& bloomUpsamplePass = fg.addPass<BloomPassData>("Bloom Upsample",
             [&](FrameGraph::Builder& builder, auto& data) {
                 data.in = builder.sample(input);
-                data.out = builder.write(input);
+
+                data.out[0] = builder.write(input);
+
+                data.out[1] = builder.createTexture("Bloom Texture BB", {
+                        .width = width,
+                        .height = height,
+                        .levels = bloomOptions.levels,
+                        .format = outFormat
+                });
+                data.out[1] = builder.write(builder.sample(data.out[1]));
 
                 for (size_t i = 0; i < bloomOptions.levels; i++) {
-                    data.outRT[i] = builder.createRenderTarget("Bloom target", {
-                            .attachments = {{ data.out, uint8_t(i) }} });
+                    data.outRT0[i] = builder.createRenderTarget("Bloom target A", {
+                            .attachments = {{ data.out[0], uint8_t(i) }} });
+                }
+
+                for (size_t i = 0; i < bloomOptions.levels; i++) {
+                    data.outRT1[i] = builder.createRenderTarget("Bloom target BB", {
+                            .attachments = {{ data.out[1], uint8_t(i) }} });
                 }
             },
+
             [=](FrameGraphPassResources const& resources,
                     auto const& data, DriverApi& driver) {
 
                 auto hwIn = resources.getTexture(data.in);
-                auto const& outDesc = resources.getDescriptor(data.out);
+                auto const& outDesc = resources.getDescriptor(data.out[1]);
 
                 PostProcessMaterial const& bloomUpsample = mBloomUpsample;
                 FMaterialInstance* mi = bloomUpsample.getMaterialInstance();
@@ -944,7 +971,7 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                 mi->use(driver);
 
                 for (size_t i = bloomOptions.levels - 1; i >= 1; i--) {
-                    auto hwDstRT = resources.get(data.outRT[i - 1]);
+                    auto hwDstRT = resources.get(data.outRT1[i - 1]);
                     hwDstRT.params.flags.discardStart = TargetBufferFlags::NONE; // because we'll blend
                     hwDstRT.params.flags.discardEnd = TargetBufferFlags::NONE;
 
@@ -961,10 +988,16 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                     driver.beginRenderPass(hwDstRT.target, hwDstRT.params);
                     driver.draw(pipeline, fullScreenRenderPrimitive);
                     driver.endRenderPass();
+
+                    auto blit_src = hwDstRT;
+                    auto blit_dst = resources.get(data.outRT0[i - 1]);
+                    driver.blit(TargetBufferFlags::COLOR,
+                        blit_dst.target, blit_dst.params.viewport, blit_src.target,
+                        blit_src.params.viewport, SamplerMagFilter::LINEAR);
                 }
             });
 
-    return bloomUpsamplePass.getData().out;
+    return bloomUpsamplePass.getData().out[1];
 }
 
 void PostProcessManager::colorGradingSubpass(DriverApi& driver, const FColorGrading* colorGrading,

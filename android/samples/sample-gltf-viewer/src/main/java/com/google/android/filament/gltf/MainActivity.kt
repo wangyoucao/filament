@@ -63,11 +63,11 @@ class MainActivity : Activity() {
         createIndirectLight()
 
         // enable dynamic resolution
-        val options = modelViewer.view.dynamicResolutionOptions
-        options.enabled = true
-        modelViewer.view.dynamicResolutionOptions = options
+        //val options = modelViewer.view.dynamicResolutionOptions
+        //options.enabled = true
+        //modelViewer.view.dynamicResolutionOptions = options
 
-        modelViewer.view.ambientOcclusion = View.AmbientOcclusion.SSAO
+        //modelViewer.view.ambientOcclusion = View.AmbientOcclusion.SSAO
 
         val bloom = modelViewer.view.bloomOptions
         bloom.enabled = true

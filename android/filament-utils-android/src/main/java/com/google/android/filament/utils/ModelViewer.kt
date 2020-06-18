@@ -119,7 +119,7 @@ class ModelViewer(val engine: Engine) : android.view.View.OnTouchListener {
         scene.addEntity(light)
     }
 
-    constructor(surfaceView: SurfaceView, engine: Engine = Engine.create(), manipulator: Manipulator? = null) : this(engine) {
+    constructor(surfaceView: SurfaceView, engine: Engine = Engine.create(Engine.Backend.VULKAN), manipulator: Manipulator? = null) : this(engine) {
         cameraManipulator = manipulator ?: Manipulator.Builder()
                 .targetPosition(kDefaultObjectPosition.x, kDefaultObjectPosition.y, kDefaultObjectPosition.z)
                 .viewport(surfaceView.width, surfaceView.height)
