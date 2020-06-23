@@ -845,6 +845,7 @@ void VulkanDriver::beginRenderPass(Handle<HwRenderTarget> rth, const RenderPassP
 
     VkImageLayout finalColorLayout;
     VkImageLayout finalDepthLayout;
+    filament::backend::TargetBufferFlags discardStart = params.flags.discardStart;
 
     if (rt->isOffscreen()) {
         finalColorLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -852,6 +853,7 @@ void VulkanDriver::beginRenderPass(Handle<HwRenderTarget> rth, const RenderPassP
     } else {
         finalColorLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         finalDepthLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        discardStart |= TargetBufferFlags::COLOR;
     }
 
     VkRenderPass renderPass = mFramebufferCache.getRenderPass({
@@ -861,7 +863,7 @@ void VulkanDriver::beginRenderPass(Handle<HwRenderTarget> rth, const RenderPassP
         .depthFormat = depth.format,
         .flags = {
             .clear = params.flags.clear,
-            .discardStart = params.flags.discardStart,
+            .discardStart = discardStart,
             .discardEnd = params.flags.discardEnd
         }
     });

@@ -104,15 +104,21 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey config) noexcept {
         .pDepthStencilAttachment = hasDepth ? &depthAttachmentRef : nullptr
     };
 
-    // The attachment description specifies the layout to transition to at the END of the render pass.
+    const bool clearColor = any(config.flags.clear & TargetBufferFlags::COLOR);
+    const bool discardColor = any(config.flags.discardStart & TargetBufferFlags::COLOR);
+    const VkAttachmentLoadOp colorLoad = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+            (discardColor ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
+
+    // The attachment description specifies the layout to transition to at the END of the render
+    // pass. [TODO say something about initialLayout here]
     VkAttachmentDescription colorAttachment {
         .format = config.colorFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = any(config.flags.clear & TargetBufferFlags::COLOR) ?
-                VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .loadOp = colorLoad,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = colorLoad == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED,
         .finalLayout = config.finalColorLayout
     };
     VkAttachmentDescription depthAttachment {

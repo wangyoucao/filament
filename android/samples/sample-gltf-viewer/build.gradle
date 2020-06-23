@@ -30,6 +30,9 @@ android {
         targetSdkVersion versions.targetSdk
         missingDimensionStrategy 'functionality', 'full'
     }
+    sourceSets.main.jniLibs {
+      srcDirs = ["${android.ndkDirectory}/sources/third_party/vulkan/src/build-android/jniLibs"]
+    }
 }
 
 dependencies {

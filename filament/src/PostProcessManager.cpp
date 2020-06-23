@@ -907,7 +907,7 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
                     mi->setParameter("resolution", float4{ w, h, 1.0f / w, 1.0f / h });
                     mi->commit(driver);
 
-                    hwOutRT1.params.flags.discardStart = TargetBufferFlags::COLOR;
+                    hwOutRT1.params.flags.clear = TargetBufferFlags::COLOR;
                     hwOutRT1.params.flags.discardEnd = TargetBufferFlags::NONE;
                     driver.beginRenderPass(hwOutRT1.target, hwOutRT1.params);
                     driver.draw(pipeline, fullScreenRenderPrimitive);
@@ -972,6 +972,8 @@ FrameGraphId<FrameGraphTexture> PostProcessManager::bloomPass(FrameGraph& fg,
 
                 for (size_t i = bloomOptions.levels - 1; i >= 1; i--) {
                     auto hwDstRT = resources.get(data.outRT1[i - 1]);
+                    // NOTE: prideout: if I change this to CLEAR, the issue goes away.
+                    // Does Vulkan preserve when not discarding? Are we using VK_ATTACHMENT_LOAD_OP_LOAD?
                     hwDstRT.params.flags.discardStart = TargetBufferFlags::NONE; // because we'll blend
                     hwDstRT.params.flags.discardEnd = TargetBufferFlags::NONE;
 

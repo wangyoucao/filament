@@ -64,7 +64,7 @@ FEngine* FEngine::create(Backend backend, Platform* platform, void* sharedGLCont
 
     FEngine* instance = new FEngine(backend, platform, sharedGLContext);
 
-    slog.i << "prideout 2h30 FEngine (" << sizeof(void*) * 8 << " bits) created at " << instance << " "
+    slog.i << "prideout Tuesday 3pm (" << sizeof(void*) * 8 << " bits) created at " << instance << " "
             << "(threading is " << (UTILS_HAS_THREADING ? "enabled)" : "disabled)") << io::endl;
 
     // initialize all fields that need an instance of FEngine
