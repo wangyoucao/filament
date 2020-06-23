@@ -109,15 +109,21 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey config) noexcept {
     const VkAttachmentLoadOp colorLoadOp = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR :
             (discardColor ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
 
+    const bool clearDepth = any(config.flags.clear & TargetBufferFlags::DEPTH);
+    const bool discardDepth = any(config.flags.discardStart & TargetBufferFlags::DEPTH);
+    const VkAttachmentLoadOp depthLoadOp = clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+            (discardDepth ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
+
     // Vulkan generally allows you to specify UNDEFINED for the initial layout of the attachment if
     // you do not know or do not care, but validation requires that you never use UNDEFINED with
     // LOAD_OP_LOAD. Note that the layout of the subpass can cause an actual layout transition
     // whereas the initial layout of the attachment seems to be informative only.
     const VkImageLayout colorLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ?
             VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;
+    const VkImageLayout depthLayout = depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ?
+            VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
-    // The attachment description specifies the layout to transition to at the END of the render
-    // pass. [TODO say something about initialLayout here]
+    // The attachment description specifies the layout to transition to at the END of the render pass.
     VkAttachmentDescription colorAttachment {
         .format = config.colorFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -131,11 +137,11 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey config) noexcept {
     VkAttachmentDescription depthAttachment {
         .format = config.depthFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = any(config.flags.clear & TargetBufferFlags::DEPTH) ?
-                VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .loadOp = depthLoadOp,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = depthLayout,
         .finalLayout = config.finalDepthLayout
     };
 

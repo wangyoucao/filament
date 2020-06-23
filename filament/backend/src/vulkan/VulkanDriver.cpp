@@ -854,7 +854,11 @@ void VulkanDriver::beginRenderPass(Handle<HwRenderTarget> rth, const RenderPassP
     } else {
         finalColorLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         finalDepthLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        discardStart |= TargetBufferFlags::COLOR;
+
+        // TODO: For now we always discard when drawing directly into the swap chain, which allows
+        // us to simplify the logic in VulkanFboCache::getRenderPass() that decides on the correct
+        // initial layout. This could be improved by tracking the current layout.
+        discardStart |= TargetBufferFlags::COLOR | TargetBufferFlags::DEPTH;
     }
 
     VkRenderPass renderPass = mFramebufferCache.getRenderPass({
