@@ -104,15 +104,28 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey config) noexcept {
         .pDepthStencilAttachment = hasDepth ? &depthAttachmentRef : nullptr
     };
 
-    // The attachment description specifies the layout to transition to at the END of the render pass.
+    const bool clearColor = any(config.flags.clear & TargetBufferFlags::COLOR);
+    const bool discardColor = any(config.flags.discardStart & TargetBufferFlags::COLOR);
+    const VkAttachmentLoadOp colorLoadOp = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+            (discardColor ? VK_ATTACHMENT_LOAD_OP_DONT_CARE : VK_ATTACHMENT_LOAD_OP_LOAD);
+
+    // Vulkan generally allows you to specify UNDEFINED for the initial layout of the attachment if
+    // you do not know or do not care, but validation requires that you never use UNDEFINED with
+    // LOAD_OP_LOAD. Note that the layout of the subpass can cause an actual layout transition
+    // whereas the initial layout of the attachment seems to be informative only.
+    const VkImageLayout colorLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ?
+            VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;
+
+    // The attachment description specifies the layout to transition to at the END of the render
+    // pass. [TODO say something about initialLayout here]
     VkAttachmentDescription colorAttachment {
         .format = config.colorFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = any(config.flags.clear & TargetBufferFlags::COLOR) ?
-                VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .loadOp = colorLoadOp,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = colorLayout,
         .finalLayout = config.finalColorLayout
     };
     VkAttachmentDescription depthAttachment {
