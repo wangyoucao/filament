@@ -85,7 +85,13 @@ struct App {
         sRGBColor backgroundColor = { 0.0f };
     } viewOptions;
 
-    View::DepthOfFieldOptions dofOptions;
+    View::DepthOfFieldOptions dofOptions = {
+        .focusDistance = 0.714,
+        .blurScale = 10.0,
+        .maxApertureDiameter = 0.01f,
+        .enabled = true
+    };
+
     View::VignetteOptions vignetteOptions;
 
     struct Scene {
