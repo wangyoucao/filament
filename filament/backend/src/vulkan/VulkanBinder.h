@@ -101,6 +101,7 @@ public:
         VkPipelineColorBlendAttachmentState blending;
         VkPipelineDepthStencilStateCreateInfo depthStencil;
         VkPipelineMultisampleStateCreateInfo multisampling;
+        // TODO
     };
     static_assert(std::is_pod<RasterState>::value, "RasterState must be a POD for fast hashing.");
 
