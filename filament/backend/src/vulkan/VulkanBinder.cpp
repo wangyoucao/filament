@@ -659,6 +659,7 @@ static VulkanBinder::RasterState createDefaultRasterState() {
         blending,
         depthStencil,
         multisampling,
+        1,
     };
 }
 

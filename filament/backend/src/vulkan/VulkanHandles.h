@@ -55,6 +55,7 @@ struct VulkanRenderTarget : private HwRenderTarget {
     VkExtent2D getExtent() const;
     VulkanAttachment getColor(int target) const;
     VulkanAttachment getDepth() const;
+    int numColorTargets() const;
     bool invalidate();
 private:
     VulkanAttachment mColor[MRT::NUM_TARGETS] = {};

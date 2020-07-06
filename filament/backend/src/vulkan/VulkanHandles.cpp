@@ -241,6 +241,16 @@ VulkanAttachment VulkanRenderTarget::getDepth() const {
     return mOffscreen ? mDepth : mContext.currentSurface->depth;
 }
 
+int VulkanRenderTarget::numColorTargets() const {
+    int count = 0;
+    for (int i = 0; i < MRT::NUM_TARGETS; i++) {
+        if (mColor[i].format != VK_FORMAT_UNDEFINED) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 bool VulkanRenderTarget::invalidate() {
     if (!mOffscreen && getSwapContext(mContext).invalid) {
         getSwapContext(mContext).invalid = false;

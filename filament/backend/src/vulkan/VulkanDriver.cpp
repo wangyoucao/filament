@@ -1276,15 +1276,17 @@ void VulkanDriver::draw(PipelineState pipelineState, Handle<HwRenderPrimitive> r
         .colorWriteMask = (VkColorComponentFlags) (rasterState.colorWrite ? 0xf : 0x0),
     };
 
-    auto& vkraster = mContext.rasterState.rasterization;
+    VkPipelineRasterizationStateCreateInfo& vkraster = mContext.rasterState.rasterization;
     vkraster.cullMode = getCullMode(rasterState.culling);
     vkraster.frontFace = getFrontFace(rasterState.inverseFrontFaces);
     vkraster.depthBiasEnable = (depthOffset.constant || depthOffset.slope) ? VK_TRUE : VK_FALSE;
     vkraster.depthBiasConstantFactor = depthOffset.constant;
     vkraster.depthBiasSlopeFactor = depthOffset.slope;
 
-    VulkanBinder::ProgramBundle shaderHandles = program->bundle;
     VulkanRenderTarget* rt = mCurrentRenderTarget;
+    mContext.rasterState.numColorTargets = rt->numColorTargets();
+
+    VulkanBinder::ProgramBundle shaderHandles = program->bundle;
 
     // Push state changes to the VulkanBinder instance. This is fast and does not make VK calls.
     mBinder.bindProgramBundle(shaderHandles);
