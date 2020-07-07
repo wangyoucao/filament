@@ -18,6 +18,7 @@
 #define TNT_FILAMENT_DRIVER_VULKANBINDER_H
 
 #include <backend/DriverEnums.h>
+#include <backend/TargetBufferInfo.h>
 
 #include <private/backend/Program.h>
 
@@ -226,6 +227,7 @@ private:
     VkDescriptorBufferInfo mDescriptorBuffers[UBUFFER_BINDING_COUNT];
     VkDescriptorImageInfo mDescriptorSamplers[SAMPLER_BINDING_COUNT];
     VkWriteDescriptorSet mDescriptorWrites[UBUFFER_BINDING_COUNT + SAMPLER_BINDING_COUNT];
+    VkPipelineColorBlendAttachmentState mColorBlendAttachments[MRT::NUM_TARGETS];
 
     // Current bindings are divided into two "keys" which are composed of a mix of actual values
     // (e.g., blending is OFF) and weak references to Vulkan objects (e.g., shader programs and
