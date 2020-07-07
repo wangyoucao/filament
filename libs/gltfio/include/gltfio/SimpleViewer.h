@@ -201,9 +201,9 @@ private:
     bool mEnableContactShadows = false;
     bool mEnableDithering = true;
     bool mEnableFxaa = true;
-    bool mEnableMsaa = true;
+    bool mEnableMsaa = false;
     bool mEnableSsao = true;
-    filament::View::BloomOptions mBloomOptions = { .enabled = true };
+    filament::View::BloomOptions mBloomOptions = { .enabled = false };
     filament::View::FogOptions mFogOptions = {};
     int mSidebarWidth;
     uint32_t mFlags;
