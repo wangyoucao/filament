@@ -68,6 +68,10 @@ public:
             const CameraInfo& cameraInfo) noexcept;
 
     // Color grading, tone mapping, etc.
+    void colorGradingPrepare(backend::DriverApi& driver, const FColorGrading* colorGrading,
+            View::VignetteOptions vignetteOptions, bool translucent, bool fxaa, bool dithering,
+            uint32_t width, uint32_t height) noexcept;
+
     void colorGradingSubpass(backend::DriverApi& driver, const FColorGrading* colorGrading,
             View::VignetteOptions vignetteOptions, bool translucent, bool fxaa, bool dithering,
             uint32_t width, uint32_t height) noexcept;

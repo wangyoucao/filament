@@ -838,8 +838,8 @@ struct RenderPassParams {
     //! Stencil value to clear the stencil buffer with
     uint32_t clearStencil = 0;
 
-    //! reserved, must be zero
-    uint32_t reserved1 = 0;
+    //! If non-zero, specifies which color attachments are designated for read-back in the subpass.
+    uint32_t subpassMask = 0;
 };
 
 struct PolygonOffset {
