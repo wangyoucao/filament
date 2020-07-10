@@ -267,6 +267,7 @@ bool VulkanBinder::getOrCreatePipeline(VkPipeline* pipeline) noexcept {
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.layout = mPipelineLayout;
     pipelineCreateInfo.renderPass = mPipelineKey.renderPass;
+    pipelineCreateInfo.subpass = mPipelineKey.subpass;
     pipelineCreateInfo.stageCount = hasFragmentShader ? SHADER_MODULE_COUNT : 1;
     pipelineCreateInfo.pStages = mShaderStages;
     pipelineCreateInfo.pVertexInputState = &vertexInputState;
@@ -352,10 +353,11 @@ void VulkanBinder::bindRasterState(const RasterState& rasterState) noexcept {
     }
 }
 
-void VulkanBinder::bindRenderPass(VkRenderPass renderPass) noexcept {
-    if (mPipelineKey.renderPass != renderPass) {
+void VulkanBinder::bindRenderPass(VkRenderPass renderPass, int subpass) noexcept {
+    if (mPipelineKey.renderPass != renderPass || mPipelineKey.subpass != subpass) {
         mDirtyPipeline = true;
         mPipelineKey.renderPass = renderPass;
+        mPipelineKey.subpass = subpass;
     }
 }
 
