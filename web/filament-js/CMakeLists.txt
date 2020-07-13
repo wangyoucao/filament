@@ -20,13 +20,12 @@ set(COPTS "${COPTS} -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0")
 # Uncomment the following line to check for leaks with leaks.html
 # set(LOPTS "${LOPTS} --memoryprofiler")
 
-set(LOPTS "${LOPTS} --bind")
+set(LOPTS "${LOPTS} --bind --no-entry")
 set(LOPTS "${LOPTS} -s ALLOW_MEMORY_GROWTH=1")
 set(LOPTS "${LOPTS} -s MODULARIZE=1")
+set(LOPTS "${LOPTS} -s STRICT=1")
 set(LOPTS "${LOPTS} -s EXPORT_NAME=Filament")
 set(LOPTS "${LOPTS} -s FULL_ES3")
-set(LOPTS "${LOPTS} -s MIN_WEBGL_VERSION=2")
-set(LOPTS "${LOPTS} -s MAX_WEBGL_VERSION=2")
 
 foreach (JS_FILENAME ${EXTERN_POSTJS_SRC})
   set(LOPTS "${LOPTS} --extern-post-js ${JS_FILENAME}")
