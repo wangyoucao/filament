@@ -361,6 +361,10 @@ Material* createMaterial(Engine* engine, const MaterialKey& config, const UvMap&
             break;
     }
 
+    if (config.hasTransmission) {
+        builder.blending(MaterialBuilder::BlendingMode::TRANSPARENT);
+    }
+
     if (config.unlit) {
         builder.shading(Shading::UNLIT);
     } else if (config.useSpecularGlossiness) {

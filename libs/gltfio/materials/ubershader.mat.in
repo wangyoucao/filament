@@ -55,7 +55,13 @@ material {
         { type : int, name : clearCoatNormalIndex },
         { type : sampler2d, name : clearCoatNormalMap },
         { type : mat3, name : clearCoatNormalUvMatrix },
-        { type : float, name : clearCoatNormalScale }
+        { type : float, name : clearCoatNormalScale },
+
+        // Transmission Map
+        { type : int, name : transmissionIndex },
+        { type : float3, name : transmissionFactor },
+        { type : sampler2d, name : transmissionMap },
+        { type : mat3, name : transmissionUvMatrix }
     ],
 }
 
@@ -91,10 +97,6 @@ fragment {
             material.baseColor *= texture(materialParams_baseColorMap, uv);
         }
 
-        #if defined(BLEND_MODE_TRANSPARENT)
-            material.baseColor.rgb *= material.baseColor.a;
-        #endif
-
         material.baseColor *= getColor();
 
         #if !defined(SHADING_MODEL_UNLIT)
@@ -118,6 +120,18 @@ fragment {
                     uv = (vec3(uv, 1.0) * materialParams.clearCoatRoughnessUvMatrix).xy;
                     material.clearCoatRoughness *= texture(materialParams_clearCoatRoughnessMap, uv).g;
                 }
+
+                // The TRANSPARENT blend mode is selected only when using KHR_materials_transmission.
+                #if defined(BLEND_MODE_TRANSPARENT)
+                    material.baseColor.rgb *= material.baseColor.a;
+                    material.transmission = materialParams.transmissionFactor;
+                    if (materialParams.transmissionIndex > -1) {
+                        highp float2 uv = uvs[materialParams.transmissionIndex];
+                        uv = (vec3(uv, 1.0) * materialParams.transmissionUvMatrix).xy;
+                        material.transmission *= texture(materialParams_transmissionMap, uv).r;
+                    }
+                #endif
+
             #endif
 
             material.emissive = vec4(materialParams.emissiveFactor.rgb, 0.0);

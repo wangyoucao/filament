@@ -22,6 +22,8 @@
 
 #include <math/mat4.h>
 
+#include <utils/Log.h>
+
 #if GLTFIO_LITE
 #include "gltfresources_lite.h"
 #else
@@ -59,7 +61,7 @@ public:
         SPECULAR_GLOSSINESS = 2,
     };
 
-    mutable Material* mMaterials[9] = {};
+    mutable Material* mMaterials[10] = {};
     Texture* mDummyTexture = nullptr;
 
     filament::Engine* mEngine;
@@ -79,7 +81,7 @@ public:
 
 #endif
 
-#define MATINDEX(shading, alpha) (int(shading) + 3 * int(alpha))
+#define MATINDEX(shading, alpha, transmit) (transmit ? 9 : (int(shading) + 3 * int(alpha)))
 
 UbershaderLoader::UbershaderLoader(Engine* engine) : mEngine(engine) {
     unsigned char texels[4] = {};
@@ -111,29 +113,41 @@ void UbershaderLoader::destroyMaterials() {
 Material* UbershaderLoader::getMaterial(const MaterialKey& config) const {
     const ShadingMode shading = config.unlit ? UNLIT :
             (config.useSpecularGlossiness ? SPECULAR_GLOSSINESS : LIT);
-    const int matindex = MATINDEX(shading, config.alphaMode);
+    const int matindex = MATINDEX(shading, config.alphaMode, config.hasTransmission);
     if (mMaterials[matindex] != nullptr) {
         return mMaterials[matindex];
     }
     switch (matindex) {
 
         #if !GLTFIO_LITE || defined(GLTFRESOURCES_LITE_LIT_OPAQUE_DATA)
-        case MATINDEX(LIT, AlphaMode::OPAQUE): mMaterials[matindex] = CREATE_MATERIAL(LIT_OPAQUE); break;
+        case MATINDEX(LIT, AlphaMode::OPAQUE, false): mMaterials[matindex] = CREATE_MATERIAL(LIT_OPAQUE); break;
         #endif
 
         #if !GLTFIO_LITE || defined(GLTFRESOURCES_LITE_LIT_BLEND_DATA)
-        case MATINDEX(LIT, AlphaMode::BLEND): mMaterials[matindex] = CREATE_MATERIAL(LIT_FADE); break;
+        case MATINDEX(LIT, AlphaMode::BLEND, false): mMaterials[matindex] = CREATE_MATERIAL(LIT_FADE); break;
         #endif
 
         #if !GLTFIO_LITE
-        case MATINDEX(LIT, AlphaMode::MASK): mMaterials[matindex] = CREATE_MATERIAL(LIT_MASKED); break;
-        case MATINDEX(UNLIT, AlphaMode::OPAQUE): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_OPAQUE); break;
-        case MATINDEX(UNLIT, AlphaMode::MASK): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_MASKED); break;
-        case MATINDEX(UNLIT, AlphaMode::BLEND): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_FADE); break;
-        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::OPAQUE): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_OPAQUE); break;
-        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::MASK): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_MASKED); break;
-        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::BLEND): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_FADE); break;
+        case MATINDEX(LIT, AlphaMode::MASK, false): mMaterials[matindex] = CREATE_MATERIAL(LIT_MASKED); break;
+        case MATINDEX(UNLIT, AlphaMode::OPAQUE, false): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_OPAQUE); break;
+        case MATINDEX(UNLIT, AlphaMode::MASK, false): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_MASKED); break;
+        case MATINDEX(UNLIT, AlphaMode::BLEND, false): mMaterials[matindex] = CREATE_MATERIAL(UNLIT_FADE); break;
+        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::OPAQUE, false): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_OPAQUE); break;
+        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::MASK, false): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_MASKED); break;
+        case MATINDEX(SPECULAR_GLOSSINESS, AlphaMode::BLEND, false): mMaterials[matindex] = CREATE_MATERIAL(SPECULARGLOSSINESS_FADE); break;
+        case MATINDEX(LIT, 0, true): mMaterials[matindex] = CREATE_MATERIAL(LIT_TRANSPARENT); break;
         #endif
+    }
+    if (mMaterials[matindex] == nullptr) {
+        slog.e <<
+            "Unsupported combination of material extensions; falling back to LIT_OPAQUE.\n"
+            "Consider using MaterialGenerator mode rather than UbershaderLoader mode." << io::endl;
+        MaterialKey litOpaque = config;
+        litOpaque.alphaMode = AlphaMode::OPAQUE;
+        litOpaque.hasTransmission = false;
+        litOpaque.useSpecularGlossiness = false;
+        litOpaque.unlit = false;
+        return getMaterial(litOpaque);
     }
     return mMaterials[matindex];
 }
