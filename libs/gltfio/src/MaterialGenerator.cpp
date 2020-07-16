@@ -200,6 +200,26 @@ std::string shaderFromKey(const MaterialKey& config) {
                 material.emissive.rgb *= texture(materialParams_emissiveMap, emissiveUV).rgb;
             )SHADER";
         }
+        if (config.hasTransmission) {
+            shader += R"SHADER(
+
+                material.transmission = materialParams.transmissionFactor;
+
+                // KHR_materials_transmission stipulates that baseColor be used for absorption.
+                material.absorption = material.baseColor.rgb;
+
+            )SHADER";
+            if (config.hasTransmissionTexture) {
+                shader += "highp float2 transmissionUV = ${transmission};\n";
+                if (config.hasTextureTransforms) {
+                    shader += "transmissionUV = (vec3(transmissionUV, 1.0) * "
+                            "materialParams.transmissionUvMatrix).xy;\n";
+                }
+                shader += R"SHADER(
+                    material.transmission *= texture(materialParams_transmissionMap, transmissionUV).r;
+                )SHADER";
+            }
+        }
         if (config.hasClearCoat) {
             shader += R"SHADER(
                 material.clearCoat = materialParams.clearCoatFactor;
@@ -341,6 +361,19 @@ Material* createMaterial(Engine* engine, const MaterialKey& config, const UvMap&
             builder.parameter(MaterialBuilder::SamplerType::SAMPLER_2D, "clearCoatNormalMap");
             if (config.hasTextureTransforms) {
                 builder.parameter(MaterialBuilder::UniformType::MAT3, "clearCoatNormalUvMatrix");
+            }
+        }
+    }
+
+    // TRANSMISSION
+    if (config.hasTransmission) {
+        builder.refractionMode(RefractionMode::SCREEN_SPACE);
+        builder.refractionType(RefractionType::THIN);
+        builder.parameter(MaterialBuilder::UniformType::FLOAT, "transmissionFactor");
+        if (config.hasTransmissionTexture) {
+            builder.parameter(MaterialBuilder::SamplerType::SAMPLER_2D, "transmissionMap");
+            if (config.hasTextureTransforms) {
+                builder.parameter(MaterialBuilder::UniformType::MAT3, "transmissionUvMatrix");
             }
         }
     }
