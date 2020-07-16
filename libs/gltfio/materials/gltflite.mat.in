@@ -59,6 +59,10 @@ fragment {
             material.baseColor *= texture(materialParams_baseColorMap, uv);
         }
 
+        #if defined(BLEND_MODE_TRANSPARENT)
+            material.baseColor.rgb *= material.baseColor.a;
+        #endif
+
         material.baseColor *= getColor();
 
         #if !defined(SHADING_MODEL_UNLIT)
